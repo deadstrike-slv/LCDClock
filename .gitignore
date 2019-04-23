@@ -1,0 +1,5 @@
+.vscode/
+Drivers/
+MDK-ARM/
+.mxproject
+lcd_clock_wp.code-workspace

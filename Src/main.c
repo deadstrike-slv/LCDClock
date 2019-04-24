@@ -55,7 +55,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define INIT_TIME 0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,6 +77,7 @@ char str1[60];
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+void RTC_InitTime(void);
 void LCD_PostInit(void);
 void LCD_WriteSecondsOrMinutes(uint8_t val, uint8_t x, uint8_t y);
 void LCD_WriteHours24(uint8_t val, uint8_t x, uint8_t y);
@@ -110,7 +111,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
   currentTime.seconds = 0xFF;
   currentTime.minutes = 0xFF;
   currentTime.hours = 0xFF;
@@ -118,15 +118,6 @@ int main(void)
   currentTime.date = 0xFF;
   currentTime.month = 0xFF;
   currentTime.year = 0xFF;
-  /*
-  currentTime.seconds = 0x00;
-  currentTime.minutes = 0x41;
-  currentTime.hours   = 0x00;
-  currentTime.day     = 0x05;
-  currentTime.date    = 0x01;
-  currentTime.month   = 0x02;
-  currentTime.year    = 0x19;
-  */
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -147,12 +138,14 @@ int main(void)
   LCD_Init();
   HAL_Delay(100);
   LCD_PostInit();
+
+  if (INIT_TIME){
+    RTC_InitTime();
+  };
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //WriteClockData(&currentTime, 0);
-
   while (1)
   {
     if (status){
@@ -253,6 +246,19 @@ void SystemClock_Config(void)
   }
 }
 
+void RTC_InitTime()
+{
+  RTCDateTimeTypeDef initTime;
+  initTime.seconds = 0x00;
+  initTime.minutes = 0x33;
+  initTime.hours   = 0x13;
+  initTime.day     = 0x03;
+  initTime.date    = 0x24;
+  initTime.month   = 0x04;
+  initTime.year    = 0x19;
+
+  WriteClockData(&initTime, 0);
+}
 /* USER CODE BEGIN 4 */
 void LCD_PostInit()
 {

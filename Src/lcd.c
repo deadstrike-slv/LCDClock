@@ -97,3 +97,172 @@ void LCD_SendString(char *st)
         i++;
     };
 }
+
+// LCD write clock data func
+void LCD_ClockInit(ConfigTypeDef *cfg)
+{
+    LCD_Clear();
+    if (cfg->temp) {
+        LCD_SetPos(1, 0);
+        LCD_SendChar('t');
+        LCD_SendChar('=');
+    }
+    
+    LCD_SetPos(10, 0);
+    LCD_SendChar(':'); // H:M
+
+    if (cfg->seconds){
+        LCD_SetPos(13, 0);
+        LCD_SendChar(':'); // M:S
+    }
+}
+
+void LCD_WriteSecondsOrMinutes(uint8_t val, uint8_t x, uint8_t y)
+{
+    LCD_SetPos(x, y);
+    LCD_SendChar(((val >> 4) & 0x07) + '0');
+    LCD_SendChar((val & 0x0F) + '0');
+}
+
+void LCD_WriteHours24(uint8_t val, uint8_t x, uint8_t y)
+{
+    LCD_SetPos(x, y);
+    LCD_SendChar(((val >> 4) & 0x03) + '0');
+    LCD_SendChar((val & 0x0F) + '0');
+}
+
+void LCD_WriteDay(uint8_t val, uint8_t x, uint8_t y)
+{
+    char *day = "";
+    switch (val)
+    {
+    case 1:
+        day = "Mon";
+        break;
+    case 2:
+        day = "Tue";
+        break;
+    case 3:
+        day = "Wed";
+        break;
+    case 4:
+        day = "Thu";
+        break;
+    case 5:
+        day = "Fri";
+        break;
+    case 6:
+        day = "Sat";
+        break;
+    case 7:
+        day = "Sun";
+        break;
+    default:
+        day = "Unk";
+    };
+    LCD_SetPos(x, y);
+    LCD_SendString(day);
+}
+
+void LCD_WriteDate(uint8_t val, uint8_t x, uint8_t y)
+{
+    LCD_SetPos(x, y);
+    LCD_SendChar(((val >> 4) & 0x03) + '0');
+    LCD_SendChar((val & 0x0F) + '0');
+}
+
+void LCD_WriteMonth(uint8_t val, uint8_t x, uint8_t y, uint8_t textmode)
+{
+    LCD_SetPos(x, y);
+    if (textmode == 1)
+    {
+        char *mon = "";
+        switch (((val >> 4) & 0x01) * 10 + (val & 0x0F))
+        {
+        case 1:
+            mon = "Jan";
+            break;
+        case 2:
+            mon = "Feb";
+            break;
+        case 3:
+            mon = "Mar";
+            break;
+        case 4:
+            mon = "Apr";
+            break;
+        case 5:
+            mon = "May";
+            break;
+        case 6:
+            mon = "Jun";
+            break;
+        case 7:
+            mon = "Jul";
+            break;
+        case 8:
+            mon = "Aug";
+            break;
+        case 9:
+            mon = "Sep";
+            break;
+        case 10:
+            mon = "Oct";
+            break;
+        case 11:
+            mon = "Now";
+            break;
+        case 12:
+            mon = "Dec";
+            break;
+        default:
+            mon = "Unk";
+        };
+        LCD_SendString(mon);
+    }
+    else
+    {
+        LCD_SendChar(((val >> 4) & 0x01) + '0');
+        LCD_SendChar((val & 0x0F) + '0');
+    }
+}
+
+void LCD_WriteYear(uint8_t val, uint8_t x, uint8_t y, uint8_t mode)
+{
+    LCD_SetPos(x, y);
+    if (mode == 1)
+    {
+        // 4 digit mode
+        if (((val >> 4) * 10 + (val & 0x0F)) > 20)
+        {
+            //19XX
+            LCD_SendChar('1');
+            LCD_SendChar('9');
+        }
+        else
+        {
+            //20XX
+            LCD_SendChar('2');
+            LCD_SendChar('0');
+        }
+    };
+    LCD_SendChar((val >> 4) + '0');
+    LCD_SendChar((val & 0x0F) + '0');
+}
+
+void LCD_WriteTemp(uint16_t val, uint8_t x, uint8_t y)
+{
+    LCD_SetPos(x, y);
+    if (ds18b20_GetSign(val))
+        LCD_SendChar('-');
+    else
+        LCD_SendChar('+');
+    uint8_t t = ds18b20_ConvertDiv(val);
+    uint8_t fc = (uint8_t)(t / 10);
+    if (fc != 0)
+        LCD_SendChar(fc + '0');
+    else
+        LCD_SetPos(x + 2, y);
+    char sc = (uint8_t)(t % 10) + '0';
+    LCD_SendChar(sc);
+}

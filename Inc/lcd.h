@@ -2,6 +2,8 @@
 #define LCD_H
 
 #include "i2c.h"
+#include "ds18b20.h"
+#include "config.h"
 
 #define LCD_ADDR (0x27 << 1)
 
@@ -35,5 +37,15 @@ void LCD_SendChar(char ch);
 void LCD_SetPos(uint8_t x, uint8_t y);
 void LCD_Init(void);
 void LCD_SendString(char *st);
+
+//lcd write data functions
+void LCD_ClockInit(ConfigTypeDef *cfg);
+void LCD_WriteSecondsOrMinutes(uint8_t val, uint8_t x, uint8_t y);
+void LCD_WriteHours24(uint8_t val, uint8_t x, uint8_t y);
+void LCD_WriteDay(uint8_t val, uint8_t x, uint8_t y);
+void LCD_WriteDate(uint8_t val, uint8_t x, uint8_t y);
+void LCD_WriteMonth(uint8_t val, uint8_t x, uint8_t y, uint8_t textmode);
+void LCD_WriteYear(uint8_t val, uint8_t x, uint8_t y, uint8_t mode);
+void LCD_WriteTemp(uint16_t val, uint8_t x, uint8_t y);
 
 #endif

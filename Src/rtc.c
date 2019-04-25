@@ -31,6 +31,7 @@ HAL_StatusTypeDef ReadRTCRegisters(RTCDateTimeTypeDef *data)
     return res;
 }
 
+//TODO some shit
 void WriteClockData(RTCDateTimeTypeDef *data, uint8_t bit_ch)
 {
     RTC_write_reg(SEC_REG, (bit_ch << 7) | (data->seconds & 0x7F));
@@ -41,3 +42,19 @@ void WriteClockData(RTCDateTimeTypeDef *data, uint8_t bit_ch)
     RTC_write_reg(MON_REG, data->month);
     RTC_write_reg(YEAR_REG, data->year);
 }
+
+void RTC_WriteTimeToRAM(RTCDateTimeTypeDef *data, uint8_t bit_ch)
+{
+    RTCDateTimeTypeDef initTime;
+    initTime.seconds = 0x00;
+    initTime.minutes = 0x33;
+    initTime.hours = 0x13;
+    initTime.day = 0x03;
+    initTime.date = 0x24;
+    initTime.month = 0x04;
+    initTime.year = 0x19;
+
+    WriteClockData(&initTime, 0);
+}
+
+

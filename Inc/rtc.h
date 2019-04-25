@@ -30,6 +30,6 @@ HAL_StatusTypeDef ReadRTCRegisters(RTCDateTimeTypeDef *data);
 
 void RTC_read_reg(uint16_t MemAddr, uint8_t *Buffer);
 void RTC_write_reg(uint16_t MemAddr, uint8_t value);
-void WriteClockData(RTCDateTimeTypeDef *data, uint8_t bit_ch);
+void RTC_WriteTimeToRAM(RTCDateTimeTypeDef *data, uint8_t bit_ch);
 
 #endif

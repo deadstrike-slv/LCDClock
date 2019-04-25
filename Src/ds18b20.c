@@ -2,7 +2,7 @@
 
 __STATIC_INLINE void DelayMicro(__IO uint32_t micros)
 {
-    micros *= (SystemCoreClock / 1000000) / 8;
+    micros *= (SystemCoreClock / 1000000) / 9;
     /* Wait till done */
     while (micros--)
         ;

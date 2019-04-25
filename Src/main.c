@@ -148,7 +148,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    if (!status){
+    if (status){
         ds18b20_MeasureTemperCmd(SKIP_ROM, 0);
         HAL_Delay(800);
         ds18b20_ReadStratcpad(SKIP_ROM, dt, 0);

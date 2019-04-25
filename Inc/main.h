@@ -53,10 +53,8 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
   //TODO check it!
-#include "lcd.h"
-#include "rtc.h"
-#include "ds18b20.h"
-/* USER CODE END Includes */
+
+  /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */

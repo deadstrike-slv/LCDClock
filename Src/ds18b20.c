@@ -2,7 +2,7 @@
 
 __STATIC_INLINE void DelayMicro(__IO uint32_t micros)
 {
-    micros *= (SystemCoreClock / 1000000) / 9;
+    micros *= (SystemCoreClock / 1000000) / 8;
     /* Wait till done */
     while (micros--)
         ;
@@ -73,7 +73,7 @@ void ds18b20_WriteByte(uint8_t dt)
 uint8_t ds18b20_init(uint8_t mode)
 {
     if (ds18b20_Reset())
-        return 1;
+        return 0;
     if (mode == SKIP_ROM)
     {
         //SKIP ROM
@@ -87,7 +87,7 @@ uint8_t ds18b20_init(uint8_t mode)
         //Resolution 12 bit
         ds18b20_WriteByte(RESOLUTION_12BIT);
     }
-    return 0;
+    return 1;
 }
 
 void ds18b20_MeasureTemperCmd(uint8_t mode, uint8_t DevNum)

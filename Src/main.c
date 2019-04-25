@@ -234,7 +234,8 @@ void SystemClock_Config(void)
   }
   /**Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -246,20 +247,25 @@ void SystemClock_Config(void)
   }
 }
 
-void RTC_InitTime()
-{
-  RTCDateTimeTypeDef initTime;
-  initTime.seconds = 0x00;
-  initTime.minutes = 0x33;
-  initTime.hours   = 0x13;
-  initTime.day     = 0x03;
-  initTime.date    = 0x24;
-  initTime.month   = 0x04;
-  initTime.year    = 0x19;
-
-  WriteClockData(&initTime, 0);
-}
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if(GPIO_Pin == btnLeft_Pin)
+  {
+    //TODO button LEFT
+  };
+
+  if(GPIO_Pin == btnRight_Pin)
+  {
+    //TODO button right
+  }
+
+  if(GPIO_Pin == btnCenter_Pin)
+  {
+    //TODO button center
+  }
+}
+
 void LCD_PostInit()
 {
   LCD_Clear();
@@ -437,7 +443,7 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
@@ -446,7 +452,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{
+{ 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

@@ -44,47 +44,55 @@
 #define __MAIN_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
 
-  /* Private includes ----------------------------------------------------------*/
-  /* USER CODE BEGIN Includes */
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
   //TODO check it!
 #include "lcd.h"
 #include "rtc.h"
 #include "ds18b20.h"
-  /* USER CODE END Includes */
+/* USER CODE END Includes */
 
-  /* Exported types ------------------------------------------------------------*/
-  /* USER CODE BEGIN ET */
+/* Exported types ------------------------------------------------------------*/
+/* USER CODE BEGIN ET */
 
-  /* USER CODE END ET */
+/* USER CODE END ET */
 
-  /* Exported constants --------------------------------------------------------*/
-  /* USER CODE BEGIN EC */
+/* Exported constants --------------------------------------------------------*/
+/* USER CODE BEGIN EC */
 
-  /* USER CODE END EC */
+/* USER CODE END EC */
 
-  /* Exported macro ------------------------------------------------------------*/
-  /* USER CODE BEGIN EM */
+/* Exported macro ------------------------------------------------------------*/
+/* USER CODE BEGIN EM */
 
-  /* USER CODE END EM */
+/* USER CODE END EM */
 
-  /* Exported functions prototypes ---------------------------------------------*/
-  void Error_Handler(void);
+/* Exported functions prototypes ---------------------------------------------*/
+void Error_Handler(void);
 
-  /* USER CODE BEGIN EFP */
+/* USER CODE BEGIN EFP */
 
-  /* USER CODE END EFP */
+/* USER CODE END EFP */
 
-  /* Private defines -----------------------------------------------------------*/
-  /* USER CODE BEGIN Private defines */
+/* Private defines -----------------------------------------------------------*/
+#define btnLeft_Pin GPIO_PIN_8
+#define btnLeft_GPIO_Port GPIOA
+#define btnLeft_EXTI_IRQn EXTI9_5_IRQn
+#define btnRight_Pin GPIO_PIN_9
+#define btnRight_GPIO_Port GPIOA
+#define btnRight_EXTI_IRQn EXTI9_5_IRQn
+#define btnCenter_Pin GPIO_PIN_10
+#define btnCenter_GPIO_Port GPIOA
+#define btnCenter_EXTI_IRQn EXTI15_10_IRQn
+/* USER CODE BEGIN Private defines */
 
-  /* USER CODE END Private defines */
+/* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }

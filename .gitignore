@@ -3,9 +3,6 @@ Drivers/
 MDK-ARM/
 .mxproject
 lcd_clock_wp.code-workspace
-<<<<<<< HEAD
-=======
 Src/Backup/
 Inc/Backup/
->>>>>>> feature/buttons
 *.bak

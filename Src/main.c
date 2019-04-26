@@ -59,12 +59,19 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+//menu entries
+#define MENU_CLOCK 1
+#define MENU_STOPWATCH 2
+#define MENU_TIMER 3
+#define MENU_SETTINGS 4
+#define MENU_CLOSE 5
+
 // modes values
-#define MODE_CLOCK      1
-#define MODE_STOPWATCH  2
-#define MODE_TIMER      3
-#define MODE_SETTINGS   4
-#define MODE_MENU       5
+#define MODE_CLOCK 1
+#define MODE_STOPWATCH 2
+#define MODE_TIMER 3
+#define MODE_SETTINGS 4
+#define MODE_MENU 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -78,13 +85,14 @@
 RTCDateTimeTypeDef currentTime, rtcTime;
 ConfigTypeDef globalCfg;
 uint8_t b[1] = {0};
-
+volatile uint8_t selectedMode;
+uint8_t currMenuEntry = 0;
+uint8_t prev_mode;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void RTC_InitTime(void);
 
 /* USER CODE END PFP */
 
@@ -100,8 +108,6 @@ void RTC_InitTime(void);
 int main(void)
 {
     /* USER CODE BEGIN 1 */
-    uint8_t ds18b20status;
-    uint8_t selectedMode = MODE_CLOCK;
 
     /* USER CODE END 1 */
 
@@ -125,18 +131,18 @@ int main(void)
     MX_GPIO_Init();
     MX_I2C2_Init();
     /* USER CODE BEGIN 2 */
+    LCD_Init();
+    HAL_Delay(100);
+
+    ds18b20_port_init();
+    uint8_t ds18b20status = ds18b20_init(SKIP_ROM);
+
     ReadConfig(&globalCfg);
 
     InitCurrentTime(&currentTime);
     LCD_ClockInit(&globalCfg);
 
-    //db1820 init
-    ds18b20_port_init();
-    ds18b20status = ds18b20_init(SKIP_ROM);
-
-    LCD_Init();
-    HAL_Delay(100);
-
+    selectedMode = MODE_CLOCK;
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -153,12 +159,6 @@ int main(void)
             {
                 UpdateTemp();
             }
-        }
-
-        if (selectedMode == MODE_MENU){
-            /*TODO 
-            navigate menu
-            */
         }
         /* USER CODE END WHILE */
 
@@ -206,20 +206,140 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if(GPIO_Pin == btnLeft_Pin)
-  {
-    //TODO button LEFT
-  };
+    if (GPIO_Pin == btnLeft_Pin)
+    {
+        if (selectedMode == MODE_MENU)
+        {
+            //Move menu up
+            char *entry1 = "";
+            char *entry2 = "";
+            switch (currMenuEntry)
+            {
+            case MENU_CLOCK:
+                entry1 = "  SETTINGS      ";
+                entry2 = "> CLOSE         ";
+                currMenuEntry = MENU_CLOSE;
+                break;
+            case MENU_STOPWATCH:
+                entry1 = "> CLOCK         ";
+                entry2 = "  STOPWATCH     ";
+                currMenuEntry = MENU_CLOCK;
+                break;
+            case MENU_TIMER:
+                entry1 = "> STOPWATCH     ";
+                entry2 = "  TIMER         ";
+                currMenuEntry = MENU_STOPWATCH;
+                break;
+            case MENU_SETTINGS:
+                entry1 = "> TIMER         ";
+                entry2 = "  SETTINGS      ";
+                currMenuEntry = MENU_TIMER;
+                break;
+            case MENU_CLOSE:
+                entry1 = "> SETTINGS      ";
+                entry2 = "  CLOSE         ";
+                currMenuEntry = MENU_SETTINGS;
+                break;
+            };
+            LCD_SetPos(0, 0);
+            LCD_SendString(entry1);
+            LCD_SetPos(0, 1);
+            LCD_SendString(entry2);
+        }
+    };
 
-  if(GPIO_Pin == btnRight_Pin)
-  {
-    //TODO button right
-  }
+    if (GPIO_Pin == btnRight_Pin)
+    {
+        if (selectedMode == MODE_MENU)
+        {
+            //Move menu down
+            char *entry1 = "";
+            char *entry2 = "";
+            switch (currMenuEntry)
+            {
+            case MENU_CLOCK:
+                entry1 = "  CLOCK         ";
+                entry2 = "> STOPWATCH     ";
+                currMenuEntry = MENU_STOPWATCH;
+                break;
+            case MENU_STOPWATCH:
+                entry1 = "  STOPWATCH     ";
+                entry2 = "> TIMER         ";
+                currMenuEntry = MENU_TIMER;
+                break;
+            case MENU_TIMER:
+                entry1 = "  TIMER         ";
+                entry2 = "> SETTINGS      ";
+                currMenuEntry = MENU_SETTINGS;
+                break;
+            case MENU_SETTINGS:
+                entry1 = "  SETTINGS      ";
+                entry2 = "> CLOSE         ";
+                currMenuEntry = MENU_CLOSE;
+                break;
+            case MENU_CLOSE:
+                entry1 = "> CLOCK         ";
+                entry2 = "  STOPWATCH     ";
+                currMenuEntry = MENU_CLOCK;
+                break;
+            };
+            LCD_SetPos(0, 0);
+            LCD_SendString(entry1);
+            LCD_SetPos(0, 1);
+            LCD_SendString(entry2);
+        }
+    }
 
-  if(GPIO_Pin == btnCenter_Pin)
-  {
-    //TODO button center
-  }
+    if (GPIO_Pin == btnCenter_Pin)
+    {
+        if (selectedMode == MODE_MENU)
+        {
+            //Open current menu entry
+            switch (currMenuEntry)
+            {
+            case MENU_CLOCK:
+                LCD_Clear();
+                selectedMode = MODE_CLOCK;
+                break;
+            case MENU_STOPWATCH:
+                //TODO switch mode to stopwatch
+                selectedMode = MODE_STOPWATCH;
+                break;
+            case MENU_TIMER:
+                //TODO switch mode to stopwatch
+                break;
+            case MENU_SETTINGS:
+                //TODO switch mode to stopwatch
+                break;
+            case MENU_CLOSE:
+                //TODO
+                LCD_Clear();
+                selectedMode = prev_mode;
+                break;
+            };
+            currMenuEntry = 0;
+        }
+        else
+        {
+            //Open menu
+            prev_mode = selectedMode;
+            selectedMode = MODE_MENU;
+
+            LCD_Clear();
+            LCD_SetPos(0, 0);
+            LCD_SendChar('>');
+
+            currMenuEntry = MENU_CLOCK;
+
+            LCD_SetPos(2, 0);
+            char *entry = "CLOCK";
+            LCD_SendString(entry);
+
+            LCD_SetPos(2, 1);
+            entry = "STOPWATCH";
+            LCD_SendString(entry);
+        };
+    }
 }
 /* USER CODE END 4 */
 
@@ -235,7 +355,7 @@ void Error_Handler(void)
     /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
@@ -244,9 +364,9 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
+{
+    /* USER CODE BEGIN 6 */
+    /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
     /* USER CODE END 6 */
 }

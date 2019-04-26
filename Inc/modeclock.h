@@ -31,6 +31,6 @@ void UpdateClock(RTCDateTimeTypeDef *currTime, RTCDateTimeTypeDef *rtcTime, Conf
  * @note   Updating temperature data on LCD with selected configures. Read data and write it to LCD 
  * @retval None
  */
-void UpdateTemp();
+void UpdateTemp(void);
 
 #endif

@@ -45,7 +45,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "lcd.h"
+#include "rtc.h"
+#include "ds18b20.h"
+#include "config.h"
+#include "modeclock.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,7 +59,19 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define INIT_TIME 0
+//menu entries
+#define MENU_CLOCK 1
+#define MENU_STOPWATCH 2
+#define MENU_TIMER 3
+#define MENU_SETTINGS 4
+#define MENU_CLOSE 5
+
+// modes values
+#define MODE_CLOCK 1
+#define MODE_STOPWATCH 2
+#define MODE_TIMER 3
+#define MODE_SETTINGS 4
+#define MODE_MENU 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -67,25 +83,22 @@
 
 /* USER CODE BEGIN PV */
 RTCDateTimeTypeDef currentTime, rtcTime;
+ConfigTypeDef globalCfg;
 uint8_t b[1] = {0};
+volatile uint8_t selectedMode;
 
-//for db18b20
-char str1[60];
+volatile uint8_t btnMenuCLicked;
+volatile uint8_t btnLeftCLicked;
+volatile uint8_t btnRightCLicked;
 
+uint8_t currMenuEntry = 0;
+uint8_t prev_mode;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void RTC_InitTime(void);
-void LCD_PostInit(void);
-void LCD_WriteSecondsOrMinutes(uint8_t val, uint8_t x, uint8_t y);
-void LCD_WriteHours24(uint8_t val, uint8_t x, uint8_t y);
-void LCD_WriteDay(uint8_t val, uint8_t x, uint8_t y);
-void LCD_WriteDate(uint8_t val, uint8_t x, uint8_t y);
-void LCD_WriteMonth(uint8_t val, uint8_t x, uint8_t y, uint8_t textmode);
-void LCD_WriteYear(uint8_t val, uint8_t x, uint8_t y, uint8_t mode);
-void LCD_WriteTemp(uint16_t val, uint8_t x, uint8_t y);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -99,115 +112,203 @@ void LCD_WriteTemp(uint16_t val, uint8_t x, uint8_t y);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-  uint8_t status;
-  uint8_t dt[8];
-  uint16_t raw_temper;
-  /* USER CODE END 1 */
+    /* USER CODE BEGIN 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+    /* USER CODE END 1 */
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+    /* MCU Configuration--------------------------------------------------------*/
 
-  /* USER CODE BEGIN Init */
-  currentTime.seconds = 0xFF;
-  currentTime.minutes = 0xFF;
-  currentTime.hours = 0xFF;
-  currentTime.day = 0xFF;
-  currentTime.date = 0xFF;
-  currentTime.month = 0xFF;
-  currentTime.year = 0xFF;
-  /* USER CODE END Init */
+    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+    HAL_Init();
 
-  /* Configure the system clock */
-  SystemClock_Config();
+    /* USER CODE BEGIN Init */
 
-  /* USER CODE BEGIN SysInit */
+    /* USER CODE END Init */
 
-  /* USER CODE END SysInit */
+    /* Configure the system clock */
+    SystemClock_Config();
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_I2C2_Init();
-  /* USER CODE BEGIN 2 */
-  //db1820 init
-  ds18b20_port_init();
-  status = ds18b20_init(SKIP_ROM);
+    /* USER CODE BEGIN SysInit */
 
-  LCD_Init();
-  HAL_Delay(100);
-  LCD_PostInit();
+    /* USER CODE END SysInit */
 
-  if (INIT_TIME){
-    RTC_InitTime();
-  };
-  /* USER CODE END 2 */
+    /* Initialize all configured peripherals */
+    MX_GPIO_Init();
+    MX_I2C2_Init();
+    /* USER CODE BEGIN 2 */
+    LCD_Init();
+    HAL_Delay(100);
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    if (status){
-        ds18b20_MeasureTemperCmd(SKIP_ROM, 0);
-        HAL_Delay(800);
-        ds18b20_ReadStratcpad(SKIP_ROM, dt, 0);
+    ds18b20_port_init();
+    uint8_t ds18b20status = ds18b20_init(SKIP_ROM);
 
-        raw_temper = ((uint16_t)dt[1] << 8) | dt[0];
-        HAL_Delay(150);
+    ReadConfig(&globalCfg);
 
-        LCD_WriteTemp(raw_temper, 3, 0);
-    }
+    InitCurrentTime(&currentTime);
+    LCD_ClockInit(&globalCfg);
 
-    if (ReadRTCRegisters(&rtcTime) == HAL_OK)
+    selectedMode = MODE_CLOCK;
+    /* USER CODE END 2 */
+
+    /* Infinite loop */
+    /* USER CODE BEGIN WHILE */
+    btnMenuCLicked = 0;
+    btnLeftCLicked = 0;
+    btnRightCLicked = 0;
+    while (1)
     {
-      if (currentTime.seconds != rtcTime.seconds)
-      {
-        currentTime.seconds = rtcTime.seconds;
-        LCD_WriteSecondsOrMinutes(currentTime.seconds, 14, 0);
-      };
+        if (selectedMode == MODE_CLOCK)
+        {
+            if (ReadRTCRegisters(&rtcTime) == HAL_OK)
+            {
+                UpdateClock(&currentTime, &rtcTime, &globalCfg);
+            }
+            if (globalCfg.temp && ds18b20status)
+            {
+                UpdateTemp();
+            }
+        }
+        /* USER CODE END WHILE */
+        if (btnMenuCLicked)
+        {
+            if (selectedMode == MODE_MENU) // if menu is already opened
+            {
+                //Open current menu entry
+                switch (currMenuEntry)
+                {
+                case MENU_CLOCK:
+                    LCD_Clear();
+                    InitCurrentTime(&currentTime);
+                    LCD_ClockInit(&globalCfg);
+                    selectedMode = MODE_CLOCK;
+                    break;
+                case MENU_STOPWATCH:
+                    //TODO switch mode to stopwatch
+                    selectedMode = MODE_STOPWATCH;
+                    break;
+                case MENU_TIMER:
+                    //TODO switch mode to stopwatch
+                    break;
+                case MENU_SETTINGS:
+                    //TODO switch mode to stopwatch
+                    break;
+                case MENU_CLOSE:
+                    //TODO
+                    LCD_Clear();
+                    selectedMode = prev_mode;
+                    break;
+                };
+                currMenuEntry = 0;
+            }
+            else
+            {
+                //Open menu
+                prev_mode = selectedMode;
+                selectedMode = MODE_MENU;
 
-      if (currentTime.minutes != rtcTime.minutes)
-      {
-        currentTime.minutes = rtcTime.minutes;
-        LCD_WriteSecondsOrMinutes(currentTime.minutes, 11, 0);
-      };
+                LCD_Clear();
+                LCD_SetPos(0, 0);
+                LCD_SendChar('>');
 
-      if (currentTime.hours != rtcTime.hours)
-      {
-        currentTime.hours = rtcTime.hours;
-        LCD_WriteHours24(currentTime.hours, 8, 0);
-      };
+                currMenuEntry = MENU_CLOCK;
 
-      if (currentTime.day != rtcTime.day)
-      {
-        currentTime.day = rtcTime.day;
-        LCD_WriteDay(currentTime.day, 1, 1);
-      };
+                LCD_SetPos(2, 0);
+                char *entry = "CLOCK";
+                LCD_SendString(entry);
 
-      if (currentTime.date != rtcTime.date)
-      {
-        currentTime.date = rtcTime.date;
-        LCD_WriteDate(currentTime.date, 5, 1);
-      };
-
-      if (currentTime.month != rtcTime.month)
-      {
-        currentTime.month = rtcTime.month;
-        LCD_WriteMonth(currentTime.month, 8, 1, 1);
-      };
-
-      if (currentTime.year != rtcTime.year)
-      {
-        currentTime.year = rtcTime.year;
-        LCD_WriteYear(currentTime.year, 12, 1, 1);
-      };
-    };
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+                LCD_SetPos(2, 1);
+                entry = "STOPWATCH";
+                LCD_SendString(entry);
+            }
+            btnMenuCLicked = 0;
+        }
+        if (btnLeftCLicked)
+        {
+            if (selectedMode == MODE_MENU)
+            {
+                //Move menu up
+                char *entry1 = "";
+                char *entry2 = "";
+                switch (currMenuEntry)
+                {
+                case MENU_CLOCK:
+                    entry1 = "  SETTINGS      ";
+                    entry2 = "> CLOSE         ";
+                    currMenuEntry = MENU_CLOSE;
+                    break;
+                case MENU_STOPWATCH:
+                    entry1 = "> CLOCK         ";
+                    entry2 = "  STOPWATCH     ";
+                    currMenuEntry = MENU_CLOCK;
+                    break;
+                case MENU_TIMER:
+                    entry1 = "> STOPWATCH     ";
+                    entry2 = "  TIMER         ";
+                    currMenuEntry = MENU_STOPWATCH;
+                    break;
+                case MENU_SETTINGS:
+                    entry1 = "> TIMER         ";
+                    entry2 = "  SETTINGS      ";
+                    currMenuEntry = MENU_TIMER;
+                    break;
+                case MENU_CLOSE:
+                    entry1 = "> SETTINGS      ";
+                    entry2 = "  CLOSE         ";
+                    currMenuEntry = MENU_SETTINGS;
+                    break;
+                };
+                LCD_SetPos(0, 0);
+                LCD_SendString(entry1);
+                LCD_SetPos(0, 1);
+                LCD_SendString(entry2);
+            }
+            btnLeftCLicked = 0;
+        }
+        if (btnRightCLicked)
+        {
+            if (selectedMode == MODE_MENU)
+            {
+                //Move menu down
+                char *entry1 = "";
+                char *entry2 = "";
+                switch (currMenuEntry)
+                {
+                case MENU_CLOCK:
+                    entry1 = "  CLOCK         ";
+                    entry2 = "> STOPWATCH     ";
+                    currMenuEntry = MENU_STOPWATCH;
+                    break;
+                case MENU_STOPWATCH:
+                    entry1 = "  STOPWATCH     ";
+                    entry2 = "> TIMER         ";
+                    currMenuEntry = MENU_TIMER;
+                    break;
+                case MENU_TIMER:
+                    entry1 = "  TIMER         ";
+                    entry2 = "> SETTINGS      ";
+                    currMenuEntry = MENU_SETTINGS;
+                    break;
+                case MENU_SETTINGS:
+                    entry1 = "  SETTINGS      ";
+                    entry2 = "> CLOSE         ";
+                    currMenuEntry = MENU_CLOSE;
+                    break;
+                case MENU_CLOSE:
+                    entry1 = "> CLOCK         ";
+                    entry2 = "  STOPWATCH     ";
+                    currMenuEntry = MENU_CLOCK;
+                    break;
+                };
+                LCD_SetPos(0, 0);
+                LCD_SendString(entry1);
+                LCD_SetPos(0, 1);
+                LCD_SendString(entry2);
+            }
+            btnRightCLicked = 0;
+        }
+        /* USER CODE BEGIN 3 */
+    }
+    /* USER CODE END 3 */
 }
 
 /**
@@ -216,213 +317,54 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /**Initializes the CPU, AHB and APB busses clocks 
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+    RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /**Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+    {
+        Error_Handler();
+    }
 }
 
-void RTC_InitTime()
-{
-  RTCDateTimeTypeDef initTime;
-  initTime.seconds = 0x00;
-  initTime.minutes = 0x33;
-  initTime.hours   = 0x13;
-  initTime.day     = 0x03;
-  initTime.date    = 0x24;
-  initTime.month   = 0x04;
-  initTime.year    = 0x19;
-
-  WriteClockData(&initTime, 0);
-}
 /* USER CODE BEGIN 4 */
-void LCD_PostInit()
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  LCD_Clear();
-  LCD_SetPos(1, 0);
-  LCD_SendChar('t');
-  LCD_SendChar('=');
-
-  LCD_SetPos(10, 0);
-  LCD_SendChar(':');
-  LCD_SetPos(13, 0);
-  LCD_SendChar(':');
-}
-
-void LCD_WriteSecondsOrMinutes(uint8_t val, uint8_t x, uint8_t y)
-{
-  LCD_SetPos(x, y);
-  LCD_SendChar(((val >> 4) & 0x07) + '0');
-  LCD_SendChar((val & 0x0F) + '0');
-}
-
-void LCD_WriteHours24(uint8_t val, uint8_t x, uint8_t y)
-{
-  LCD_SetPos(x, y);
-  LCD_SendChar(((val >> 4) & 0x03) + '0');
-  LCD_SendChar((val & 0x0F) + '0');
-}
-
-void LCD_WriteDay(uint8_t val, uint8_t x, uint8_t y)
-{
-  char *day = "";
-  switch (val)
-  {
-  case 1:
-    day = "Mon";
-    break;
-  case 2:
-    day = "Tue";
-    break;
-  case 3:
-    day = "Wed";
-    break;
-  case 4:
-    day = "Thu";
-    break;
-  case 5:
-    day = "Fri";
-    break;
-  case 6:
-    day = "Sat";
-    break;
-  case 7:
-    day = "Sun";
-    break;
-  default:
-    day = "Unk";
-  };
-  LCD_SetPos(x, y);
-  LCD_SendString(day);
-}
-
-void LCD_WriteDate(uint8_t val, uint8_t x, uint8_t y)
-{
-  LCD_SetPos(x, y);
-  LCD_SendChar(((val >> 4) & 0x03) + '0');
-  LCD_SendChar((val & 0x0F) + '0');
-}
-
-void LCD_WriteMonth(uint8_t val, uint8_t x, uint8_t y, uint8_t textmode)
-{
-  LCD_SetPos(x, y);
-  if (textmode == 1)
-  {
-    char *mon = "";
-    switch (((val >> 4) & 0x01) * 10 + (val & 0x0F))
+    if (GPIO_Pin == btnLeft_Pin)
     {
-    case 1:
-      mon = "Jan";
-      break;
-    case 2:
-      mon = "Feb";
-      break;
-    case 3:
-      mon = "Mar";
-      break;
-    case 4:
-      mon = "Apr";
-      break;
-    case 5:
-      mon = "May";
-      break;
-    case 6:
-      mon = "Jun";
-      break;
-    case 7:
-      mon = "Jul";
-      break;
-    case 8:
-      mon = "Aug";
-      break;
-    case 9:
-      mon = "Sep";
-      break;
-    case 10:
-      mon = "Oct";
-      break;
-    case 11:
-      mon = "Now";
-      break;
-    case 12:
-      mon = "Dec";
-      break;
-    default:
-      mon = "Unk";
+        btnLeftCLicked = 1;
     };
-    LCD_SendString(mon);
-  }
-  else
-  {
-    LCD_SendChar(((val >> 4) & 0x01) + '0');
-    LCD_SendChar((val & 0x0F) + '0');
-  }
-}
 
-void LCD_WriteYear(uint8_t val, uint8_t x, uint8_t y, uint8_t mode)
-{
-  LCD_SetPos(x, y);
-  if (mode == 1)
-  {
-    // 4 digit mode
-    if (((val >> 4) * 10 + (val & 0x0F)) > 20)
+    if (GPIO_Pin == btnRight_Pin)
     {
-      //19XX
-      LCD_SendChar('1');
-      LCD_SendChar('9');
+        btnRightCLicked = 1;
     }
-    else
+
+    if (GPIO_Pin == btnCenter_Pin)
     {
-      //20XX
-      LCD_SendChar('2');
-      LCD_SendChar('0');
+        btnMenuCLicked = 1;
     }
-  };
-  LCD_SendChar((val >> 4) + '0');
-  LCD_SendChar((val & 0x0F) + '0');
 }
-
-void LCD_WriteTemp(uint16_t val, uint8_t x, uint8_t y)
-{
-  LCD_SetPos(x, y);
-  if (ds18b20_GetSign(val))
-    LCD_SendChar('-');
-  else
-    LCD_SendChar('+');
-  uint8_t t = ds18b20_ConvertDiv(val);
-  uint8_t fc = (uint8_t)(t / 10);
-  if (fc != 0)
-    LCD_SendChar(fc + '0');
-  else
-    LCD_SetPos(x + 2, y);
-  char sc = (uint8_t)(t % 10) + '0';
-  LCD_SendChar(sc);
-}
-
 /* USER CODE END 4 */
 
 /**
@@ -431,10 +373,10 @@ void LCD_WriteTemp(uint16_t val, uint8_t x, uint8_t y)
   */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+    /* USER CODE BEGIN Error_Handler_Debug */
+    /* User can add his own implementation to report the HAL error return state */
 
-  /* USER CODE END Error_Handler_Debug */
+    /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef USE_FULL_ASSERT
@@ -447,10 +389,10 @@ void Error_Handler(void)
   */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
+    /* USER CODE BEGIN 6 */
+    /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+    /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 

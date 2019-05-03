@@ -88,6 +88,12 @@ void LCD_Init(void)
     set_write(); //запись
 }
 
+void LCD_SendCharAt(char ch, uint8_t x, uint8_t y)
+{
+    LCD_SetPos(x, y);
+    LCD_SendChar(ch);
+}
+
 void LCD_SendString(char *st)
 {
     uint8_t i = 0;
@@ -99,19 +105,17 @@ void LCD_SendString(char *st)
 }
 
 // LCD write clock data func
-void LCD_ClockInit(ConfigTypeDef *cfg)
+void LCD_ClockInit(uint8_t cfg)
 {
     LCD_Clear();
-    if (cfg->temp) {
-        LCD_SetPos(1, 0);
-        LCD_SendChar('t');
+    if (cfg & CFG_TEMP) {
+        LCD_SendCharAt('t', 1, 0);
         LCD_SendChar('=');
     }
     
-    LCD_SetPos(10, 0);
-    LCD_SendChar(':'); // H:M
+    LCD_SendCharAt(':', 10, 0); // H:M
 
-    if (cfg->seconds){
+    if (cfg & CFG_SECONDS){
         LCD_SetPos(13, 0);
         LCD_SendChar(':'); // M:S
     }

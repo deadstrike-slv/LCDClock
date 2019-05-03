@@ -50,6 +50,7 @@
 #include "ds18b20.h"
 #include "config.h"
 #include "modeclock.h"
+#include "menu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,19 +60,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-//menu entries
-#define MENU_CLOCK 1
-#define MENU_STOPWATCH 2
-#define MENU_TIMER 3
-#define MENU_SETTINGS 4
-#define MENU_CLOSE 5
 
-// modes values
-#define MODE_CLOCK 1
-#define MODE_STOPWATCH 2
-#define MODE_TIMER 3
-#define MODE_SETTINGS 4
-#define MODE_MENU 5
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -83,16 +72,11 @@
 
 /* USER CODE BEGIN PV */
 RTCDateTimeTypeDef currentTime, rtcTime;
-ConfigTypeDef globalCfg;
 uint8_t b[1] = {0};
-volatile uint8_t selectedMode;
 
 volatile uint8_t btnMenuCLicked;
 volatile uint8_t btnLeftCLicked;
 volatile uint8_t btnRightCLicked;
-
-uint8_t currMenuEntry = 0;
-uint8_t prev_mode;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -142,16 +126,21 @@ int main(void)
     ds18b20_port_init();
     uint8_t ds18b20status = ds18b20_init(SKIP_ROM);
 
-    ReadConfig(&globalCfg);
+    uint8_t config_reg = 0b00001111;
+    uint8_t config_tmp = config_reg;
+    ReadConfig(&config_reg);
 
     InitCurrentTime(&currentTime);
-    LCD_ClockInit(&globalCfg);
+    LCD_ClockInit(config_reg);
 
-    selectedMode = MODE_CLOCK;
+    uint8_t selectedMode = MODE_CLOCK;
+    uint8_t prev_mode = MODE_CLOCK;
+    uint8_t currMenuEntry = 0;
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
+
     btnMenuCLicked = 0;
     btnLeftCLicked = 0;
     btnRightCLicked = 0;
@@ -161,152 +150,145 @@ int main(void)
         {
             if (ReadRTCRegisters(&rtcTime) == HAL_OK)
             {
-                UpdateClock(&currentTime, &rtcTime, &globalCfg);
+                UpdateClock(&currentTime, &rtcTime, config_reg);
             }
-            if (globalCfg.temp && ds18b20status)
+            if ((config_reg & CFG_TEMP) && ds18b20status)
             {
                 UpdateTemp();
             }
         }
+
+        if (selectedMode == MODE_STOPWATCH)
+        {
+            //TODO mode STOPWATCH
+        }
+
+        if (selectedMode == MODE_TIMER)
+        {
+            //TODO mode TIMER
+        }
         /* USER CODE END WHILE */
+
+        /* USER CODE BEGIN 3 */
+        // btn center clicked
         if (btnMenuCLicked)
         {
-            if (selectedMode == MODE_MENU) // if menu is already opened
+            switch (selectedMode)
             {
-                //Open current menu entry
+            case MODE_MENU:
                 switch (currMenuEntry)
                 {
                 case MENU_CLOCK:
                     LCD_Clear();
                     InitCurrentTime(&currentTime);
-                    LCD_ClockInit(&globalCfg);
+                    LCD_ClockInit(config_reg);
                     selectedMode = MODE_CLOCK;
                     break;
+
                 case MENU_STOPWATCH:
                     //TODO switch mode to stopwatch
                     selectedMode = MODE_STOPWATCH;
                     break;
+
                 case MENU_TIMER:
-                    //TODO switch mode to stopwatch
+                    //TODO switch mode to timer
                     break;
+
                 case MENU_SETTINGS:
-                    //TODO switch mode to stopwatch
+                    MenuSettingsOpen(&selectedMode, &currMenuEntry, config_reg);
                     break;
-                case MENU_CLOSE:
-                    //TODO
+                case MENU_EXIT:
+                    //TODO menu CLOSE
                     LCD_Clear();
                     selectedMode = prev_mode;
                     break;
                 };
                 currMenuEntry = 0;
-            }
-            else
-            {
-                //Open menu
-                prev_mode = selectedMode;
-                selectedMode = MODE_MENU;
+                break;
 
-                LCD_Clear();
-                LCD_SetPos(0, 0);
-                LCD_SendChar('>');
+            case MODE_SETTINGS:
+                switch (currMenuEntry)
+                {
+                case SETTINGS_TIME:
+                    //TODO open time settings menu
+                    break;
+                case SETTINGS_DAY:
+                    //TODO update menu entry
+                    config_tmp ^= CFG_DAY; 
+                    break;
+                case SETTINGS_DATE:
+                    //TODO update menu entry
+                    config_tmp ^= CFG_DAY; 
+                    break;
+                case SETTINGS_SECONDS:
+                    //TODO update menu entry
+                    config_tmp ^= CFG_DAY; 
+                    break;
+                case SETTINGS_TEMP:
+                    //TODO update menu entry
+                    config_tmp ^= CFG_DAY; 
+                    break;
+                case SETTINGS_SAVE:
+                    config_reg = config_tmp;
+                    WriteConfig(config_reg);
+                    
+                    //TODO prev mode
+                    LCD_Clear();
+                    selectedMode = prev_mode;
 
-                currMenuEntry = MENU_CLOCK;
+                    break;
+                case SETTINGS_CANCEL:
+                    config_tmp = config_reg;
+                    
+                    //TODO prev mode
+                    LCD_Clear();
+                    selectedMode = prev_mode;
+                    break;
+                }
 
-                LCD_SetPos(2, 0);
-                char *entry = "CLOCK";
-                LCD_SendString(entry);
+                currMenuEntry = 0;
+                break;
 
-                LCD_SetPos(2, 1);
-                entry = "STOPWATCH";
-                LCD_SendString(entry);
+            default:
+                MenuMainOpen(&prev_mode, &selectedMode, &currMenuEntry);
             }
             btnMenuCLicked = 0;
         }
+
+        //btn Left (Up) clicked
         if (btnLeftCLicked)
         {
-            if (selectedMode == MODE_MENU)
+            switch (selectedMode)
             {
-                //Move menu up
-                char *entry1 = "";
-                char *entry2 = "";
-                switch (currMenuEntry)
-                {
-                case MENU_CLOCK:
-                    entry1 = "  SETTINGS      ";
-                    entry2 = "> CLOSE         ";
-                    currMenuEntry = MENU_CLOSE;
-                    break;
-                case MENU_STOPWATCH:
-                    entry1 = "> CLOCK         ";
-                    entry2 = "  STOPWATCH     ";
-                    currMenuEntry = MENU_CLOCK;
-                    break;
-                case MENU_TIMER:
-                    entry1 = "> STOPWATCH     ";
-                    entry2 = "  TIMER         ";
-                    currMenuEntry = MENU_STOPWATCH;
-                    break;
-                case MENU_SETTINGS:
-                    entry1 = "> TIMER         ";
-                    entry2 = "  SETTINGS      ";
-                    currMenuEntry = MENU_TIMER;
-                    break;
-                case MENU_CLOSE:
-                    entry1 = "> SETTINGS      ";
-                    entry2 = "  CLOSE         ";
-                    currMenuEntry = MENU_SETTINGS;
-                    break;
-                };
-                LCD_SetPos(0, 0);
-                LCD_SendString(entry1);
-                LCD_SetPos(0, 1);
-                LCD_SendString(entry2);
+            case MODE_MENU:
+                MenuMainUp(&currMenuEntry);
+                break;
+            case MODE_SETTINGS:
+                MenuSettingsUp(&currMenuEntry);
+                break;
+
+            default:
+                break;
             }
             btnLeftCLicked = 0;
         }
+
+        //btn Right (Down) clicked
         if (btnRightCLicked)
         {
-            if (selectedMode == MODE_MENU)
+            switch (selectedMode)
             {
-                //Move menu down
-                char *entry1 = "";
-                char *entry2 = "";
-                switch (currMenuEntry)
-                {
-                case MENU_CLOCK:
-                    entry1 = "  CLOCK         ";
-                    entry2 = "> STOPWATCH     ";
-                    currMenuEntry = MENU_STOPWATCH;
-                    break;
-                case MENU_STOPWATCH:
-                    entry1 = "  STOPWATCH     ";
-                    entry2 = "> TIMER         ";
-                    currMenuEntry = MENU_TIMER;
-                    break;
-                case MENU_TIMER:
-                    entry1 = "  TIMER         ";
-                    entry2 = "> SETTINGS      ";
-                    currMenuEntry = MENU_SETTINGS;
-                    break;
-                case MENU_SETTINGS:
-                    entry1 = "  SETTINGS      ";
-                    entry2 = "> CLOSE         ";
-                    currMenuEntry = MENU_CLOSE;
-                    break;
-                case MENU_CLOSE:
-                    entry1 = "> CLOCK         ";
-                    entry2 = "  STOPWATCH     ";
-                    currMenuEntry = MENU_CLOCK;
-                    break;
-                };
-                LCD_SetPos(0, 0);
-                LCD_SendString(entry1);
-                LCD_SetPos(0, 1);
-                LCD_SendString(entry2);
+            case MODE_MENU:
+                MenuMainDown(&currMenuEntry);
+                break;
+            case MODE_SETTINGS:
+                MenuSettingsDown(&currMenuEntry);
+                break;
+            default:
+                break;
             }
             btnRightCLicked = 0;
         }
-        /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
 }
@@ -352,17 +334,26 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == btnLeft_Pin)
     {
-        btnLeftCLicked = 1;
+        if (!btnLeftCLicked)
+        {
+            btnLeftCLicked = 1;
+        }
     };
 
     if (GPIO_Pin == btnRight_Pin)
     {
-        btnRightCLicked = 1;
+        if (!btnRightCLicked)
+        {
+            btnRightCLicked = 1;
+        }
     }
 
     if (GPIO_Pin == btnCenter_Pin)
     {
-        btnMenuCLicked = 1;
+        if (!btnMenuCLicked)
+        {
+            btnMenuCLicked = 1;
+        }
     }
 }
 /* USER CODE END 4 */

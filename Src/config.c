@@ -1,17 +1,17 @@
 #include "config.h"
 
-void ReadConfig(ConfigTypeDef *cfg)
+HAL_StatusTypeDef ReadConfig(uint8_t *cfg)
 {
-    RTC_read_reg(ADDR_CFG_TEMP,     &(cfg->temp));
-    RTC_read_reg(ADDR_CFG_DAY,      &(cfg->day));
-    RTC_read_reg(ADDR_CFG_DATE,     &(cfg->date));
-    RTC_read_reg(ADDR_CFG_SECONDS,  &(cfg->seconds));
+    HAL_StatusTypeDef res = HAL_I2C_IsDeviceReady(&hi2c2, RTC_ADDR, 1, HAL_MAX_DELAY);
+
+    if (res == HAL_OK)
+    {
+        RTC_read_reg(ADDR_CFG, cfg);   
+    }
+    return res;
 }
 
-void WriteConfig(ConfigTypeDef *cfg)
+void WriteConfig(uint8_t cfg)
 {
-    RTC_write_reg(ADDR_CFG_TEMP,     cfg->temp);
-    RTC_write_reg(ADDR_CFG_DAY,      cfg->day);
-    RTC_write_reg(ADDR_CFG_DATE,     cfg->date);
-    RTC_write_reg(ADDR_CFG_SECONDS,  cfg->seconds);
+    RTC_write_reg(ADDR_CFG, cfg);
 }

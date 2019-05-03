@@ -6,19 +6,25 @@
 
 // using rtc as BKP
 // BKP addresses
-#define ADDR_CFG_TEMP   0x08
-#define ADDR_CFG_DAY    0x09
-#define ADDR_CFG_DATE   0x0A
-#define ADDR_CFG_SECONDS 0x0B
+#define ADDR_CFG    0x08
+/* 
+* BKP register config values
+* BIT 7 0
+* BIT 6 0
+* BIT 5 0
+* BIT 4 0
+* BIT 3 Temp    0-Off / 1-On
+* BIT 2 Date    0-Off / 1-On
+* BIT 1 Day     0-Off / 1-On
+* BIT 0 Seconds 0-Off / 1-On
+*/
+#define ADDR_CFG   0x08
+#define CFG_SECONDS 0x00000001
+#define CFG_DAY     0b00000010
+#define CFG_DATE    0b00000100
+#define CFG_TEMP    0b00001000
 
-typedef struct {
-    volatile uint8_t temp;          // 0-OFF 1-ON
-    volatile uint8_t day;           // 0-OFF 1-ON
-    volatile uint8_t date;          // 0-OFF 1-ON
-    volatile uint8_t seconds;       // 0-OFF 1-ON
-} ConfigTypeDef;
-
-void ReadConfig(ConfigTypeDef *cfg);
-void WriteConfig(ConfigTypeDef *cfg);
+HAL_StatusTypeDef ReadConfig(uint8_t *cfg);
+void WriteConfig(uint8_t cfg);
 
 #endif

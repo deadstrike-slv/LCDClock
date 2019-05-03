@@ -11,13 +11,20 @@ void InitCurrentTime(RTCDateTimeTypeDef *curr)
     curr->year = 0xFF;
 }
 
-void UpdateClock(RTCDateTimeTypeDef *currTime, RTCDateTimeTypeDef *rtcTime, ConfigTypeDef *cfg)
+void UpdateClock(RTCDateTimeTypeDef *currTime, RTCDateTimeTypeDef *rtcTime, uint8_t cfg)
 {
-    if (cfg->seconds && currTime->seconds != rtcTime->seconds)
+    if (currTime->seconds != rtcTime->seconds)
     {
-        currTime->seconds = rtcTime->seconds;
-        LCD_WriteSecondsOrMinutes(currTime->seconds, 14, 0);
-    };
+        if (cfg & CFG_SECONDS)
+        {
+            currTime->seconds = rtcTime->seconds;
+            LCD_WriteSecondsOrMinutes(currTime->seconds, 14, 0);
+        }
+        else
+        {
+            LCD_SendCharAt(':', 10, 0); // H:M
+        }
+    }
 
     if (currTime->minutes != rtcTime->minutes)
     {
@@ -31,13 +38,13 @@ void UpdateClock(RTCDateTimeTypeDef *currTime, RTCDateTimeTypeDef *rtcTime, Conf
         LCD_WriteHours24(currTime->hours, 8, 0);
     };
 
-    if (cfg->day && currTime->day != rtcTime->day)
+    if ((cfg & CFG_DAY) && currTime->day != rtcTime->day)
     {
         currTime->day = rtcTime->day;
         LCD_WriteDay(currTime->day, 1, 1);
     };
 
-    if (cfg->date)
+    if (cfg & CFG_DATE)
     {
         if (currTime->date != rtcTime->date)
         {

@@ -24,7 +24,7 @@ void InitCurrentTime(RTCDateTimeTypeDef *curr);
  * @param  *cfg: struct with selected configures (ON/OFF some param to display)
  * @retval None
  */
-void UpdateClock(RTCDateTimeTypeDef *currTime, RTCDateTimeTypeDef *rtcTime, ConfigTypeDef *cfg);
+void UpdateClock(RTCDateTimeTypeDef *currTime, RTCDateTimeTypeDef *rtcTime, uint8_t cfg);
 
 /**
  * @brief  Update Temp data on LCD

@@ -35,11 +35,12 @@ void LCD_Init(uint8_t lcd_addr);
 void LCD_Clear(void);
 void LCD_SendChar(char ch);
 void LCD_SetPos(uint8_t x, uint8_t y);
+void LCD_SendCharAt(char ch, uint8_t x, uint8_t y);
 void LCD_Init(void);
 void LCD_SendString(char *st);
 
 //lcd write data functions
-void LCD_ClockInit(ConfigTypeDef *cfg);
+void LCD_ClockInit(uint8_t cfg);
 void LCD_WriteSecondsOrMinutes(uint8_t val, uint8_t x, uint8_t y);
 void LCD_WriteHours24(uint8_t val, uint8_t x, uint8_t y);
 void LCD_WriteDay(uint8_t val, uint8_t x, uint8_t y);
